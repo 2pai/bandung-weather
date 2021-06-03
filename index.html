@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <meta name="author" content="Aurelio De Rosa">
+      <title>Dasbor</title>
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+      <style>
+         .recognition-options
+         {
+            list-style: none;
+            padding: 0;
+         }
+
+         .recognition-options li
+         {
+            display: inline;
+         }
+
+         fieldset
+         {
+            border: 0;
+            margin: 0.5em 0;
+            padding: 0;
+         }
+
+         legend
+         {
+            padding: 0;
+         }
+         .fade-in {
+            opacity: 1;
+            animation-name: fadeInOpacity;
+            animation-iteration-count: 1;
+            animation-timing-function: ease-in;
+            animation-duration: 1s;
+         }
+
+         @keyframes fadeInOpacity {
+            0% {
+               opacity: 0;
+            }
+            100% {
+               opacity: 1;
+            }
+         }
+
+      </style>
+   </head>
+   <body>
+    <div class="container">
+        <div class="jumbotron">
+            <h1 class="text-center">Bandung Weather 🌈</h1>
+            <div class="row">
+                <div class="col-sm-3">
+                  <div class="card">
+                    <div class="card-body">
+                      <h5 class="card-title">Data Collected</h5>
+                      <h3 id="data-collected"class="card-text"></h3>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-6">
+                  <div class="card">
+                    <div class="card-body text-center">
+                      <h5 class="card-title">Current Temp</h5>
+                      <h3 id="data-live" class="card-text"></p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-sm-3">
+                    <div class="card">
+                      <div class="card-body">
+                        <h5 class="card-title">Average Temp</h5>
+                        <h3 id="data-average" class="card-text"></h3>
+                      </div>
+                    </div>
+                </div>
+              </div>
+        </div>
+        <div>
+           
+         <table id="sensor-table" class="table">
+            <thead>
+               <tr>
+                  <th>Date</th>
+                  <th>BatchID</th>
+                  <th>DeviceName</th>
+                  <th>Temperature</th>
+               </tr>
+            </thead>
+            <tbody>
+            </tbody>
+         </table>
+
+        </div>
+      </div>
+
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+      <script>
+         const apiHost = "http://localhost:3000"; // host your api gateway i.e http://localhost:3000
+         var mqtt;
+         const mqttHost = "localhost"; // your mqtt host i.e. localhost
+         const mqttPort = 9001; // port mqqt (websocket) default = 9001
+         var weatherData = [];
+
+         function mqttConnect() {
+            mqtt = new Paho.MQTT.Client(mqttHost, Number(mqttPort), "client-web");
+            mqtt.connect({onSuccess:onConnect});
+            mqtt.onConnectionLost = onConnectionLost;
+            mqtt.onMessageArrived = onMessageArrived;
+         }
+         
+         function onConnect() {
+            mqtt.subscribe("sensor-1");
+            mqtt.subscribe("sensor-2");
+            mqtt.subscribe("sensor-3");
+         }
+         function onMessageArrived(message) {
+            const tableref = document.getElementById('sensor-table').getElementsByTagName('tbody')[0];
+            const payload = JSON.parse(message.payloadString);
+            const tablerow = tableref.insertRow(0)
+            updateData(payload)
+            tablerow.className = 'fade-in'
+            tablerow.innerHTML = `<tr class=fade-in> <td>${new Date(payload.date).toLocaleString('id-ID')}</td> <td>${payload.id}</td><td>${payload.deviceName}</td> <td>${payload.value}</td> </tr>`
+         }
+         function updateData(data){
+            if(weatherData[data.id] != null){
+                weatherData[data.id].total += data.value
+                weatherData[data.id].count++
+                if(weatherData[data.id].count == 3){
+                    dashboardUpdate()
+                }
+            }else{
+                weatherData[data.id] = {total:0,count:0}
+                weatherData[data.id].total += data.value
+                weatherData[data.id].count++
+            }
+         }
+         function getAvg(){
+            let numOfData = 0;
+            let totalData = 0;
+            for (let index = 0; index < Object.keys(weatherData).length; index++) {
+                const element = weatherData[Object.keys(weatherData)[index]]
+                totalData += element.total
+                numOfData += element.count
+              }
+            return Math.floor(totalData/numOfData)
+         }
+         function getLastData(){
+            const lastData = weatherData[Object.keys(weatherData)[Object.keys(weatherData).length-1]]
+            return Math.floor(lastData.total/lastData.count)
+         }
+         function getNumOfData(){
+             return Object.keys(weatherData).length
+         }
+         function dashboardUpdate(){
+            document.getElementById('data-collected').innerText = getNumOfData() +' Data'
+            document.getElementById('data-average').innerText = getAvg() +' Degree'
+            document.getElementById('data-live').innerText = getLastData() +' Degree'
+
+         }
+         function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+               console.log("onConnectionLost:"+responseObject.errorMessage);
+            }
+         }
+
+        mqttConnect()
+         
+      </script>
+   </body>
+</html>
