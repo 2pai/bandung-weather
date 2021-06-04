@@ -6,6 +6,7 @@
       <meta name="author" content="Aurelio De Rosa">
       <title>Dasbor</title>
       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" integrity="sha512-iBBXm8fW90+nuLcSKlbmrPcLa0OT92xO1BIsZ+ywDWZCvqsWgccV3gFoRBv0z+8dLJgyAHIhR35VZc2oM/gI1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
       <style>
          .recognition-options
          {
@@ -57,15 +58,20 @@
                   <div class="card">
                     <div class="card-body">
                       <h5 class="card-title">Data Collected</h5>
-                      <h3 id="data-collected"class="card-text"></h3>
+                      <h3 id="data-collected"class="card-text">0</h3>
                     </div>
                   </div>
                 </div>
                 <div class="col-sm-6">
                   <div class="card">
-                    <div class="card-body text-center">
+                    <div class=" card-body row" >
+                     <div class="col-md text-right" id="iconWeather">
+                        <i class="fas fa-cloud-sun" style="font-size:60px;color:orange;"></i>
+                     </div>
+                     <div class="col-md">
                       <h5 class="card-title">Current Temp</h5>
-                      <h3 id="data-live" class="card-text"></p>
+                      <h3 id="data-live" class="card-text">0</h3>
+                     </div>
                     </div>
                   </div>
                 </div>
@@ -73,7 +79,7 @@
                     <div class="card">
                       <div class="card-body">
                         <h5 class="card-title">Average Temp</h5>
-                        <h3 id="data-average" class="card-text"></h3>
+                        <h3 id="data-average" class="card-text">0</h3>
                       </div>
                     </div>
                 </div>
@@ -81,7 +87,7 @@
         </div>
         <div>
            
-         <table id="sensor-table" class="table">
+         <table id="sensor-table" class="table" >
             <thead>
                <tr>
                   <th>Date</th>
@@ -103,7 +109,7 @@
          var mqtt;
          const mqttHost = "localhost"; // your mqtt host i.e. localhost
          const mqttPort = 9001; // port mqqt (websocket) default = 9001
-         var weatherData = [];
+         var weatherData = {};
 
          function mqttConnect() {
             mqtt = new Paho.MQTT.Client(mqttHost, Number(mqttPort), "client-web");
@@ -116,26 +122,32 @@
             mqtt.subscribe("sensor-1");
             mqtt.subscribe("sensor-2");
             mqtt.subscribe("sensor-3");
+            mqtt.subscribe("sensor-4");
+            mqtt.subscribe("sensor-5");
          }
          function onMessageArrived(message) {
             const tableref = document.getElementById('sensor-table').getElementsByTagName('tbody')[0];
             const payload = JSON.parse(message.payloadString);
             const tablerow = tableref.insertRow(0)
+            if (tableref.rows.length > 10)  tableref.deleteRow(-1)
             updateData(payload)
             tablerow.className = 'fade-in'
             tablerow.innerHTML = `<tr class=fade-in> <td>${new Date(payload.date).toLocaleString('id-ID')}</td> <td>${payload.id}</td><td>${payload.deviceName}</td> <td>${payload.value}</td> </tr>`
          }
          function updateData(data){
             if(weatherData[data.id] != null){
-                weatherData[data.id].total += data.value
-                weatherData[data.id].count++
-                if(weatherData[data.id].count == 3){
-                    dashboardUpdate()
-                }
+               weatherData[data.id].total += data.value
+               weatherData[data.id].count++
+               if(weatherData[data.id].count == data.manySensor){
+                  dashboardUpdate()
+               }
             }else{
-                weatherData[data.id] = {total:0,count:0}
-                weatherData[data.id].total += data.value
-                weatherData[data.id].count++
+               weatherData[data.id] = {total:0,count:0}
+               weatherData[data.id].total += data.value
+               weatherData[data.id].count++
+               if(weatherData[data.id].count == data.manySensor){
+                  dashboardUpdate()
+               }
             }
          }
          function getAvg(){
@@ -156,9 +168,19 @@
              return Object.keys(weatherData).length
          }
          function dashboardUpdate(){
+            const lastdata = getLastData()
             document.getElementById('data-collected').innerText = getNumOfData() +' Data'
             document.getElementById('data-average').innerText = getAvg() +' Degree'
-            document.getElementById('data-live').innerText = getLastData() +' Degree'
+            document.getElementById('data-live').innerText = lastdata +' Degree'
+            if (lastdata < 20){
+               document.getElementById('iconWeather').innerHTML = `<i class="fas fa-snowflake" style="font-size:60px;color:lightblue;"></i>`
+            }else if (lastdata < 35){
+               document.getElementById('iconWeather').innerHTML = `<i class="fas fa-cloud-sun" style="font-size:60px;color:orange;"></i>`
+            }else if (lastdata < 55){
+               document.getElementById('iconWeather').innerHTML = `<i class="fas fa-sun" style="font-size:60px;color:yellow;"></i>`
+            }else if (lastdata > 55){
+               document.getElementById('iconWeather').innerHTML = `<i class="fas fa-meteor" style="font-size:60px;color:darkblue;"></i>`
+            }
 
          }
          function onConnectionLost(responseObject) {
@@ -166,8 +188,8 @@
                console.log("onConnectionLost:"+responseObject.errorMessage);
             }
          }
-
-        mqttConnect()
+         
+         mqttConnect()
          
       </script>
    </body>
