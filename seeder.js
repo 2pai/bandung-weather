@@ -19,4 +19,4 @@ setInterval(() => {
     seed(`sensor-${i}`, JSON.stringify({id:uuid, deviceName:`sensor-${i}`,date:Date.now(), value: genValue(), manySensor:randNum}))
   }
 
-}, 5000);
+}, 10000);
