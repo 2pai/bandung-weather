@@ -1,0 +1,24 @@
+{
+    "name": "SRESHIBAINU NFT",
+    "description": "Exclusive SRESHIBAINU NFT By SREPTU & TEMAN2,",
+    "symbol": "SREINUNFT",
+    "image": "https://raw.githubusercontent.com/2pai/bandung-weather/refs/heads/main/sreinu.png",
+    "attributes": [
+        {
+            "trait_type": "Rarity",
+            "value": "Common"
+        },
+        {
+            "trait_type": "Collection",
+            "value": "SRESHIBAINU Genesis"
+        },
+        {
+            "trait_type": "ThanksTo",
+            "value": "Beyonce"
+        },
+        {
+            "trait_type": "Regards",
+            "value": "UcupForCEO"
+        }
+    ]
+}
